@@ -1,6 +1,7 @@
 (function() {
   'use strict';
   module.exports = function(ndx) {
+    var getUserOffset;
     ndx.app.post('/api/timezone', ndx.authenticate(), function(req, res, next) {
       var where;
       where = {};
@@ -10,30 +11,49 @@
       }, where, null, true);
       return res.end('OK');
     });
-    return ndx.app.use('/api/*', function(req, res, next) {
-      var getTimezoneOffset;
-      if (ndx.user) {
-        getTimezoneOffset = function(date) {
-          var i, len, ref, timezone;
+    getUserOffset = function(date, userId, cb) {
+      var where;
+      where = {};
+      where[ndx.settings.AUTO_ID] = userId;
+      return ndx.database.select(ndx.settings.USER_TABLE, where, null, true, function(users) {
+        var i, len, ref, timezone;
+        if (users && users.length && users[0].timezone) {
+          ref = users[0].timezone;
+          for (i = 0, len = ref.length; i < len; i++) {
+            timezone = ref[i];
+            if (date.valueOf() < timezone.date) {
+              return typeof cb === "function" ? cb(timezone.offset) : void 0;
+            }
+          }
+        }
+        return typeof cb === "function" ? cb(0) : void 0;
+      });
+    };
+    get;
+    return ndx.timezone = {
+      getUserOffset: getUserOffset,
+      getCurrentUserOffset: function(date) {
+        var i, len, ref, timezone;
+        if (ndx.user && ndx.user.timezone) {
           ref = ndx.user.timezone;
           for (i = 0, len = ref.length; i < len; i++) {
             timezone = ref[i];
-            if (date < timezone.date) {
+            if (date.valueOf() < timezone.date) {
               return timezone.offset;
             }
           }
-          return 0;
-        };
-        ndx.user.getTimezoneOffset = getTimezoneOffset;
-        ndx.user.getTimezoneDate = function(d) {
+        }
+        return 0;
+      },
+      getDate: function(date, userId, cb) {
+        return getUserOffset(date, userId, function(offset) {
           var utc;
-          utc = d.valueOf() + (d.getTimezoneOffset() * 1000 * 60);
-          utc += ndx.user.getTimezoneOffset(d.valueOf()) * 1000 * 60;
+          utc = date.valueOf() + (date.getTimezoneOffset() * 60000);
+          utc += offset * 60000;
           return utc;
-        };
+        });
       }
-      return next();
-    });
+    };
   };
 
 }).call(this);

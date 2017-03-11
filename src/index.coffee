@@ -8,16 +8,26 @@ module.exports = (ndx) ->
       timezone: req.body.timezone
     , where, null, true
     res.end 'OK'
-  ndx.app.use '/api/*', (req, res, next) ->
-    if ndx.user
-      getTimezoneOffset = (date) ->
+  getUserOffset = (date, userId, cb) ->
+    where = {}
+    where[ndx.settings.AUTO_ID] = userId
+    ndx.database.select ndx.settings.USER_TABLE, where, null, true, (users) ->
+      if users and users.length and users[0].timezone
+        for timezone in users[0].timezone
+          if date.valueOf() < timezone.date
+            return cb? timezone.offset
+      return cb? 0
+  get
+  ndx.timezone =
+    getUserOffset: getUserOffset
+    getCurrentUserOffset: (date) ->
+      if ndx.user and ndx.user.timezone
         for timezone in ndx.user.timezone
-          if date < timezone.date
+          if date.valueOf() < timezone.date
             return timezone.offset
-        0
-      ndx.user.getTimezoneOffset = getTimezoneOffset
-      ndx.user.getTimezoneDate = (d) ->
-        utc = d.valueOf() + (d.getTimezoneOffset() * 1000 * 60)
-        utc += ndx.user.getTimezoneOffset(d.valueOf()) * 1000 * 60
+      0
+    getDate: (date, userId, cb) ->
+      getUserOffset date, userId, (offset) ->
+        utc = date.valueOf() + (date.getTimezoneOffset() * 60000)
+        utc += offset * 60000
         utc
-    next()
