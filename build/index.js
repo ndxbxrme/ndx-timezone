@@ -29,7 +29,6 @@
         return typeof cb === "function" ? cb(0) : void 0;
       });
     };
-    get;
     return ndx.timezone = {
       getUserOffset: getUserOffset,
       getCurrentUserOffset: function(date) {

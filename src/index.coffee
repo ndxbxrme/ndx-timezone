@@ -17,7 +17,6 @@ module.exports = (ndx) ->
           if date.valueOf() < timezone.date
             return cb? timezone.offset
       return cb? 0
-  get
   ndx.timezone =
     getUserOffset: getUserOffset
     getCurrentUserOffset: (date) ->
